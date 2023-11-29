@@ -1,0 +1,17 @@
+
+steps:
+- task: TerraformInstaller@1
+  displayName: Install Terraform 1.6.1
+  inputs:
+    terraformVersion: 1.6.1
+    
+- task: TerraformTaskV4@4
+  displayName: 'Terraform init'
+  inputs:
+    provider: 'azurerm'
+    command: 'init'
+    backendServiceArm: 'dev-env'
+    backendAzureRmResourceGroupName: 'misc'
+    backendAzureRmStorageAccountName: 'kborowiecsa'
+    backendAzureRmContainerName: 'tfstate'
+    backendAzureRmKey: 'aks.tfstate'

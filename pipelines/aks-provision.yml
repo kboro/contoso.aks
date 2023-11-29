@@ -1,0 +1,89 @@
+name: aks-infra.$(Date:yyyyMMdd).$(rev:r)
+
+variables:
+  - name: backendServiceArm
+    value: "dev-env"
+  
+trigger:
+  branches:
+    include:
+      - main
+
+stages:
+  - stage: Validate
+    displayName: Static Code Analysis
+    jobs:
+    - job: init
+      displayName: Security and Compliance check
+      pool:
+        vmImage: ubuntu-latest
+      steps:
+
+      - task: Bash@3
+        inputs:
+          targetType: 'inline'
+          script: 'pip install checkov'
+        displayName: Install checkov
+
+      - task: Bash@3
+        inputs:
+          targetType: 'inline'
+          workingDirectory: $(System.DefaultWorkingDirectory)
+          script: 'checkov -d . -o junitxml > scan-result.xml'
+        displayName: Checkov source code scan
+        continueOnError: true
+
+      - task: PublishTestResults@2
+        inputs:
+          testResultsFormat: 'JUnit'
+          searchFolder: '$(System.DefaultWorkingDirectory)'
+          testResultsFiles: '**/*scan-result.xml'
+          mergeTestResults: false
+          testRunTitle: Terraform source code scan
+          failTaskOnFailedTests: false
+          publishRunAttachments: true
+        displayName: Publish Test Result
+
+  - stage: TF_PLAN
+    displayName: TERRAFORM PLAN
+    jobs:
+      - job: plan
+        pool:
+          vmImage: ubuntu-latest
+        displayName: Terraform plan
+        steps:
+
+        - template: templates/tf-init.yml
+       
+        - task: TerraformTaskV4@4
+          displayName: 'Terraform plan'
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            environmentServiceNameAzureRM: '$(backendServiceArm)'
+  
+  - stage: TF_APPLY
+    displayName: TERRAFORM APPLY
+    jobs:   
+      - deployment: apply
+        displayName: Terraform apply
+        condition: and (succeeded(), ne(variables['Build.Reason'], 'PullRequest'))
+        pool:
+          vmImage: 'ubuntu-latest'
+        environment: dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+
+              - checkout: self
+                clean: true
+
+              - template: templates/tf-init.yml
+        
+              - task: TerraformTaskV4@4
+                displayName: 'Terraform apply'
+                inputs:
+                  provider: 'azurerm'
+                  command: apply
+                  environmentServiceNameAzureRM: '$(backendServiceArm)'
