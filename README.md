@@ -19,3 +19,7 @@
 **Note:** 
 1. Always run `terraform plan` and review it carefully before applying changes, especially in a production environment. Always check the results of your deployments to ensure that everything was created as expected.
 2. Developers are not permitted to execute 'terraform apply' locally due to having only 'Reader' permissions on the Subscription. Any changes to the infrastructure can ONLY be deployed via the 'aks-provision' Azure DevOps Pipeline.
+
+## Solution Diagram:
+
+![image](https://github.com/kboro/contoso.aks/assets/28050787/589a9d90-a5ba-4678-b523-6b6fe2ce0081)
